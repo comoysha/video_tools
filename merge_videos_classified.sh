@@ -173,9 +173,11 @@ if [ ${#landscape_files[@]} -gt 0 ]; then
         
         echo "正在处理横屏视频 ($((i+1))/${#landscape_files[@]}): $filename"
         
-        # 标准化分辨率，保持宽高比，用黑边填充
+        # 使用模糊背景填充，替代黑边填充
         ffmpeg -i "$input_file" \
-            -vf "scale=${LANDSCAPE_WIDTH}:${LANDSCAPE_HEIGHT}:force_original_aspect_ratio=decrease,pad=${LANDSCAPE_WIDTH}:${LANDSCAPE_HEIGHT}:(ow-iw)/2:(oh-ih)/2:black" \
+            -filter_complex "[0:v]scale=${LANDSCAPE_WIDTH}:${LANDSCAPE_HEIGHT}:force_original_aspect_ratio=increase,crop=${LANDSCAPE_WIDTH}:${LANDSCAPE_HEIGHT},boxblur=12:2[bg]; \
+                             [0:v]scale=${LANDSCAPE_WIDTH}:${LANDSCAPE_HEIGHT}:force_original_aspect_ratio=decrease[fg]; \
+                             [bg][fg]overlay=(W-w)/2:(H-h)/2" \
             -c:a copy \
             -y "$normalized_file" 2>/dev/null
         
@@ -225,9 +227,11 @@ if [ ${#portrait_files[@]} -gt 0 ]; then
         
         echo "正在处理竖屏视频 ($((i+1))/${#portrait_files[@]}): $filename"
         
-        # 标准化分辨率，保持宽高比，用黑边填充
+        # 使用模糊背景填充，替代黑边填充
         ffmpeg -i "$input_file" \
-            -vf "scale=${PORTRAIT_WIDTH}:${PORTRAIT_HEIGHT}:force_original_aspect_ratio=decrease,pad=${PORTRAIT_WIDTH}:${PORTRAIT_HEIGHT}:(ow-iw)/2:(oh-ih)/2:black" \
+            -filter_complex "[0:v]scale=${PORTRAIT_WIDTH}:${PORTRAIT_HEIGHT}:force_original_aspect_ratio=increase,crop=${PORTRAIT_WIDTH}:${PORTRAIT_HEIGHT},boxblur=12:2[bg]; \
+                             [0:v]scale=${PORTRAIT_WIDTH}:${PORTRAIT_HEIGHT}:force_original_aspect_ratio=decrease[fg]; \
+                             [bg][fg]overlay=(W-w)/2:(H-h)/2" \
             -c:a copy \
             -y "$normalized_file" 2>/dev/null
         

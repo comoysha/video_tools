@@ -100,7 +100,7 @@ if [ ${#video_files[@]} -eq 0 ]; then
 fi
 
 echo "共找到 ${#video_files[@]} 个视频文件"
-echo "开始标准化视频分辨率为 ${TARGET_WIDTH}x${TARGET_HEIGHT}..."
+echo "开始标准化视频分辨率为 ${TARGET_WIDTH}x${TARGET_HEIGHT}（使用模糊背景填充）..."
 
 # 标准化所有视频到相同分辨率
 for i in "${!video_files[@]}"; do
@@ -114,15 +114,17 @@ for i in "${!video_files[@]}"; do
     original_resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 "$input_file" 2>/dev/null)
     echo "  原始分辨率: $original_resolution"
     
-    # 标准化分辨率，保持宽高比，用黑边填充
+    # 使用模糊背景填充，替代黑边填充
     ffmpeg -i "$input_file" \
-        -vf "scale=${TARGET_WIDTH}:${TARGET_HEIGHT}:force_original_aspect_ratio=decrease,pad=${TARGET_WIDTH}:${TARGET_HEIGHT}:(ow-iw)/2:(oh-ih)/2:black" \
+        -filter_complex "[0:v]scale=${TARGET_WIDTH}:${TARGET_HEIGHT}:force_original_aspect_ratio=increase,crop=${TARGET_WIDTH}:${TARGET_HEIGHT},boxblur=12:2[bg]; \
+                         [0:v]scale=${TARGET_WIDTH}:${TARGET_HEIGHT}:force_original_aspect_ratio=decrease[fg]; \
+                         [bg][fg]overlay=(W-w)/2:(H-h)/2" \
         -c:a copy \
         -y "$normalized_file" 2>/dev/null
     
     if [ $? -eq 0 ]; then
         echo "file '$normalized_file'" >> "$TEMP_LIST"
-        echo "  ✓ 标准化完成"
+        echo "  ✓ 标准化完成（模糊背景填充）"
     else
         echo "  ✗ 标准化失败，跳过此文件"
     fi
